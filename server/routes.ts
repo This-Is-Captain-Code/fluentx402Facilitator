@@ -124,13 +124,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Attempt settlement
-      const settlementResult = await blockchainService.settlePayment({
-        amount: paymentDetails.amount,
-        to: paymentDetails.to,
-        scheme: paymentDetails.scheme,
-        tokenAddress: paymentDetails.tokenAddress,
-      });
+      // Attempt settlement by broadcasting the pre-signed transaction
+      const settlementResult = await blockchainService.settlePayment(paymentPayload);
 
       if (!settlementResult.success) {
         // Update transaction with error
@@ -212,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ...config,
       facilitatorAddress,
       walletConfigured,
-      settlementAvailable: walletConfigured,
+      settlementAvailable: true, // Always available - broadcasts user-signed transactions
     });
   });
 

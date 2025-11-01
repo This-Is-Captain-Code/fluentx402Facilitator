@@ -37,6 +37,105 @@ export default function Docs() {
           </Alert>
         </section>
 
+        {/* Non-Custodial Model */}
+        <section className="mb-12" id="non-custodial">
+          <h2 className="text-2xl font-semibold mb-4">Non-Custodial Payment Model</h2>
+          <p className="text-muted-foreground mb-6">
+            This facilitator follows the true x402 protocol specification - it is completely <strong>non-custodial</strong>. 
+            Funds flow directly from the user's wallet to the recipient. The facilitator only broadcasts pre-signed transactions 
+            to the network and never holds or controls user funds.
+          </p>
+
+          <Alert className="mb-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertDescription className="text-blue-900 dark:text-blue-100">
+              <div className="font-semibold mb-2">Payment Flow</div>
+              <div className="text-sm">
+                User signs transaction off-chain → Sends signed transaction to facilitator → Facilitator broadcasts to blockchain → 
+                Funds transfer directly from user to recipient
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Creating Signed Transactions</CardTitle>
+              <CardDescription>
+                The <code className="font-mono text-sm">paymentPayload</code> must be a complete, RLP-encoded signed transaction created by the user's wallet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h4 className="font-semibold mb-3">For Native ETH Payments (ethers.js v6)</h4>
+                <CodeBlock
+                  language="javascript"
+                  code={`import { ethers } from 'ethers';
+
+// User's wallet (e.g., from Privy, MetaMask, etc.)
+const wallet = new ethers.Wallet(userPrivateKey, provider);
+
+// Create transaction
+const tx = await wallet.signTransaction({
+  to: recipientAddress,           // Where funds go
+  value: ethers.parseEther("0.01"), // Amount in ETH
+  chainId: 20994,                  // Fluent testnet
+  gasLimit: 21000,
+  maxFeePerGas: ethers.parseUnits("2", "gwei"),
+  maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
+  nonce: await provider.getTransactionCount(wallet.address)
+});
+
+// tx is now a serialized signed transaction ready to send as paymentPayload`}
+                />
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-3">For fUSD Token Payments (ERC-20)</h4>
+                <CodeBlock
+                  language="javascript"
+                  code={`import { ethers } from 'ethers';
+
+const FUSD_ADDRESS = "0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9";
+const fUSDContract = new ethers.Contract(FUSD_ADDRESS, [
+  "function transfer(address to, uint256 amount) returns (bool)"
+], wallet);
+
+// Encode transfer call
+const transferData = fUSDContract.interface.encodeFunctionData(
+  "transfer",
+  [recipientAddress, ethers.parseUnits("10.0", 18)] // 10 fUSD
+);
+
+// Sign transaction calling fUSD.transfer()
+const tx = await wallet.signTransaction({
+  to: FUSD_ADDRESS,                // Token contract
+  data: transferData,              // Encoded transfer() call
+  value: 0,                        // No ETH value for token transfers
+  chainId: 20994,
+  gasLimit: 65000,
+  maxFeePerGas: ethers.parseUnits("2", "gwei"),
+  maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
+  nonce: await provider.getTransactionCount(wallet.address)
+});
+
+// tx is the signed transaction to send as paymentPayload`}
+                />
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-3">Key Requirements</h4>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>User must have sufficient balance in <strong>their own wallet</strong> (not the facilitator)</li>
+                  <li>User must have enough ETH for gas fees</li>
+                  <li>Transaction must be signed with user's private key</li>
+                  <li>Chain ID must be 20994 (Fluent testnet)</li>
+                  <li>Nonce must be correct for the sender's address</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Verify Endpoint */}
         <section className="mb-12" id="verify">
           <Card>

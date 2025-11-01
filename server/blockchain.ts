@@ -29,7 +29,7 @@ export class BlockchainService {
     // Initialize fUSD contract (read-only)
     this.fusdContract = new ethers.Contract(FUSD_ADDRESS, ERC20_ABI, this.provider);
     
-    // Only initialize wallet if private key is provided
+    // Wallet is optional - only needed for facilitator admin tasks, not for broadcasting user txs
     if (process.env.FACILITATOR_PRIVATE_KEY) {
       try {
         this.wallet = new ethers.Wallet(process.env.FACILITATOR_PRIVATE_KEY, this.provider);
@@ -38,7 +38,7 @@ export class BlockchainService {
         console.error("❌ Failed to initialize wallet:", error);
       }
     } else {
-      console.log("ℹ️  Running in verification-only mode (no private key provided)");
+      console.log("ℹ️  Running in verification-only mode (no private key needed for broadcasting)");
     }
   }
 
@@ -62,12 +62,19 @@ export class BlockchainService {
     }
   }
 
+  /**
+   * Verifies a pre-signed transaction (x402-compliant non-custodial verification)
+   * @param paymentPayload - RLP-encoded signed transaction
+   * @param paymentDetails - Expected payment parameters
+   * @returns Verification result with recovered sender address
+   */
   async verifyPaymentPayload(
     paymentPayload: string,
     paymentDetails: {
       networkId: string;
       amount: string;
       to: string;
+      from?: string;
       scheme: string;
       tokenAddress?: string;
     }
@@ -98,7 +105,6 @@ export class BlockchainService {
           };
         }
 
-        // Verify token address matches fUSD
         if (paymentDetails.tokenAddress.toLowerCase() !== FUSD_ADDRESS.toLowerCase()) {
           return {
             valid: false,
@@ -114,17 +120,16 @@ export class BlockchainService {
         }
       }
 
-      // Parse and verify amount
-      let amountValue: bigint;
+      // Parse expected amount
+      let expectedAmountValue: bigint;
       try {
         if (paymentDetails.scheme === PaymentScheme.EVM_ERC20) {
-          // For fUSD, use token decimals (typically 18)
-          amountValue = ethers.parseUnits(paymentDetails.amount, 18);
+          expectedAmountValue = ethers.parseUnits(paymentDetails.amount, 18);
         } else {
-          amountValue = ethers.parseEther(paymentDetails.amount);
+          expectedAmountValue = ethers.parseEther(paymentDetails.amount);
         }
         
-        if (amountValue <= 0n) {
+        if (expectedAmountValue <= BigInt(0)) {
           return {
             valid: false,
             message: "Payment amount must be greater than 0",
@@ -145,40 +150,141 @@ export class BlockchainService {
         };
       }
 
-      // For demo purposes, we'll do basic validation
-      // In production, you would verify the signature against the payment details
-      // The payload should be a signed message containing payment information
-      
-      // Basic payload format check (should be hex string)
-      if (!paymentPayload.startsWith("0x") || paymentPayload.length < 10) {
+      // Parse the signed transaction
+      let parsedTx: ethers.Transaction;
+      try {
+        parsedTx = ethers.Transaction.from(paymentPayload);
+      } catch (error: any) {
         return {
           valid: false,
-          message: "Invalid payment payload format",
+          message: `Invalid signed transaction: ${error.message}`,
         };
       }
 
-      // Try to recover signer from payload (simplified for demo)
-      // In real implementation, you would verify against expected message format
-      let recoveredAddress: string | undefined;
-      
-      try {
-        // Create a message to verify (this would be standardized in production)
-        const currencyLabel = paymentDetails.scheme === PaymentScheme.EVM_ERC20 ? "fUSD" : "ETH";
-        const message = `Pay ${paymentDetails.amount} ${currencyLabel} to ${paymentDetails.to} on network ${paymentDetails.networkId}`;
-        
-        // Try to recover address from signature
-        if (paymentPayload.length >= 132) { // Standard signature length
-          recoveredAddress = ethers.verifyMessage(message, paymentPayload);
+      // Verify transaction chain ID
+      if (parsedTx.chainId !== BigInt(FLUENT_TESTNET_CONFIG.chainId)) {
+        return {
+          valid: false,
+          message: `Transaction chain ID mismatch. Expected ${FLUENT_TESTNET_CONFIG.chainId}, got ${parsedTx.chainId?.toString()}`,
+        };
+      }
+
+      // Recover sender address from signature
+      const senderAddress = parsedTx.from;
+      if (!senderAddress) {
+        return {
+          valid: false,
+          message: "Unable to recover sender address from transaction",
+        };
+      }
+
+      // If from address provided in paymentDetails, verify it matches
+      if (paymentDetails.from && paymentDetails.from.toLowerCase() !== senderAddress.toLowerCase()) {
+        return {
+          valid: false,
+          message: "Sender address mismatch",
+        };
+      }
+
+      // Verify transaction parameters based on scheme
+      if (paymentDetails.scheme === PaymentScheme.EVM_NATIVE) {
+        // For native ETH transfers
+        if (!parsedTx.to || parsedTx.to.toLowerCase() !== paymentDetails.to.toLowerCase()) {
+          return {
+            valid: false,
+            message: "Recipient address mismatch",
+          };
         }
-      } catch (error) {
-        // Signature verification failed, but we'll allow it for demo
-        console.log("Signature verification skipped (demo mode)");
+
+        if (parsedTx.value !== expectedAmountValue) {
+          return {
+            valid: false,
+            message: `Amount mismatch. Expected ${paymentDetails.amount} ETH, got ${ethers.formatEther(parsedTx.value)} ETH`,
+          };
+        }
+
+        // Check sender has sufficient balance (including gas)
+        const balance = await this.provider.getBalance(senderAddress);
+        const estimatedGas = parsedTx.gasLimit * (parsedTx.maxFeePerGas || parsedTx.gasPrice || BigInt(0));
+        const totalNeeded = parsedTx.value + estimatedGas;
+        
+        if (balance < totalNeeded) {
+          return {
+            valid: false,
+            message: `Insufficient sender balance. Has: ${ethers.formatEther(balance)} ETH, needs: ${ethers.formatEther(totalNeeded)} ETH (including gas)`,
+          };
+        }
+
+      } else if (paymentDetails.scheme === PaymentScheme.EVM_ERC20) {
+        // For ERC-20 token transfers
+        if (!parsedTx.to || parsedTx.to.toLowerCase() !== paymentDetails.tokenAddress!.toLowerCase()) {
+          return {
+            valid: false,
+            message: "Transaction must be sent to token contract",
+          };
+        }
+
+        // Decode the transaction data to verify it's a transfer call
+        try {
+          const tokenInterface = new ethers.Interface(ERC20_ABI);
+          const decodedData = tokenInterface.parseTransaction({ data: parsedTx.data });
+
+          if (!decodedData || decodedData.name !== "transfer") {
+            return {
+              valid: false,
+              message: "Transaction must call transfer() function",
+            };
+          }
+
+          const [recipient, amount] = decodedData.args;
+
+          if (recipient.toLowerCase() !== paymentDetails.to.toLowerCase()) {
+            return {
+              valid: false,
+              message: "Token recipient mismatch",
+            };
+          }
+
+          if (amount !== expectedAmountValue) {
+            return {
+              valid: false,
+              message: `Token amount mismatch. Expected ${paymentDetails.amount}, got ${ethers.formatUnits(amount, 18)}`,
+            };
+          }
+
+          // Check sender has sufficient token balance
+          const tokenContract = new ethers.Contract(paymentDetails.tokenAddress!, ERC20_ABI, this.provider);
+          const tokenBalance = await tokenContract.balanceOf(senderAddress);
+          
+          if (tokenBalance < amount) {
+            return {
+              valid: false,
+              message: `Insufficient token balance. Has: ${ethers.formatUnits(tokenBalance, 18)} fUSD, needs: ${paymentDetails.amount} fUSD`,
+            };
+          }
+
+          // Check sender has sufficient ETH for gas
+          const balance = await this.provider.getBalance(senderAddress);
+          const estimatedGas = parsedTx.gasLimit * (parsedTx.maxFeePerGas || parsedTx.gasPrice || BigInt(0));
+          
+          if (balance < estimatedGas) {
+            return {
+              valid: false,
+              message: `Insufficient ETH for gas. Has: ${ethers.formatEther(balance)} ETH, needs: ${ethers.formatEther(estimatedGas)} ETH`,
+            };
+          }
+        } catch (error: any) {
+          return {
+            valid: false,
+            message: `Failed to decode token transfer: ${error.message}`,
+          };
+        }
       }
 
       return {
         valid: true,
-        message: "Payment payload verified successfully",
-        recoveredAddress,
+        message: "Payment transaction verified successfully",
+        recoveredAddress: senderAddress,
       };
     } catch (error: any) {
       return {
@@ -188,13 +294,13 @@ export class BlockchainService {
     }
   }
 
+  /**
+   * Settles a payment by broadcasting a pre-signed transaction (x402-compliant non-custodial settlement)
+   * @param paymentPayload - RLP-encoded signed transaction from user
+   * @returns Settlement result with transaction hash
+   */
   async settlePayment(
-    paymentDetails: {
-      amount: string;
-      to: string;
-      scheme: string;
-      tokenAddress?: string;
-    }
+    paymentPayload: string
   ): Promise<{
     success: boolean;
     txHash?: string;
@@ -202,87 +308,14 @@ export class BlockchainService {
     message?: string;
   }> {
     try {
-      // Check if wallet is initialized
-      if (!this.wallet) {
-        return {
-          success: false,
-          message: "Settlement not available: Facilitator wallet not configured. Please provide FACILITATOR_PRIVATE_KEY.",
-        };
-      }
+      // Broadcast the user's pre-signed transaction
+      // Facilitator only pays network fees to propagate, user's wallet sends the actual funds
+      const txResponse = await this.provider.broadcastTransaction(paymentPayload);
+      
+      console.log(`📤 Transaction broadcasted: ${txResponse.hash}`);
 
-      // Verify recipient address
-      if (!ethers.isAddress(paymentDetails.to)) {
-        return {
-          success: false,
-          message: "Invalid recipient address",
-        };
-      }
-
-      let tx: ethers.ContractTransactionResponse | ethers.TransactionResponse;
-      let receipt: ethers.TransactionReceipt | null;
-
-      if (paymentDetails.scheme === PaymentScheme.EVM_ERC20) {
-        // ERC-20 token settlement
-        if (!paymentDetails.tokenAddress) {
-          return {
-            success: false,
-            message: "Token address required for ERC-20 settlement",
-          };
-        }
-
-        if (paymentDetails.tokenAddress.toLowerCase() !== FUSD_ADDRESS.toLowerCase()) {
-          return {
-            success: false,
-            message: `Unsupported token. Only fUSD (${FUSD_ADDRESS}) is supported`,
-          };
-        }
-
-        // Parse amount with token decimals
-        const amountTokens = ethers.parseUnits(paymentDetails.amount, 18);
-
-        // Create token contract instance with wallet
-        const tokenContract = new ethers.Contract(FUSD_ADDRESS, ERC20_ABI, this.wallet);
-
-        // Check facilitator token balance
-        const balance = await tokenContract.balanceOf(this.wallet.address);
-        if (balance < amountTokens) {
-          return {
-            success: false,
-            message: `Insufficient fUSD balance. Has: ${ethers.formatUnits(balance, 18)} fUSD, needs: ${paymentDetails.amount} fUSD`,
-          };
-        }
-
-        // Execute token transfer
-        tx = await tokenContract.transfer(paymentDetails.to, amountTokens);
-        console.log(`📤 fUSD transfer sent: ${tx.hash}`);
-
-        // Wait for confirmation
-        receipt = await tx.wait();
-
-      } else {
-        // Native ETH settlement
-        const amountWei = ethers.parseEther(paymentDetails.amount);
-
-        // Check facilitator balance
-        const balance = await this.provider.getBalance(this.wallet.address);
-        if (balance < amountWei) {
-          return {
-            success: false,
-            message: `Insufficient facilitator balance. Has: ${ethers.formatEther(balance)} ETH, needs: ${paymentDetails.amount} ETH`,
-          };
-        }
-
-        // Send transaction
-        tx = await this.wallet.sendTransaction({
-          to: paymentDetails.to,
-          value: amountWei,
-        });
-
-        console.log(`📤 ETH transaction sent: ${tx.hash}`);
-
-        // Wait for confirmation
-        receipt = await tx.wait();
-      }
+      // Wait for confirmation
+      const receipt = await txResponse.wait();
 
       if (!receipt) {
         return {
@@ -301,9 +334,21 @@ export class BlockchainService {
       };
     } catch (error: any) {
       console.error("❌ Settlement error:", error);
+      
+      // Provide more specific error messages
+      let message = `Settlement failed: ${error.message}`;
+      
+      if (error.code === "INSUFFICIENT_FUNDS") {
+        message = "Insufficient funds in sender wallet";
+      } else if (error.code === "NONCE_EXPIRED" || error.code === "REPLACEMENT_UNDERPRICED") {
+        message = "Transaction nonce already used or gas price too low";
+      } else if (error.code === "NETWORK_ERROR") {
+        message = "Network error - transaction may have been broadcasted";
+      }
+
       return {
         success: false,
-        message: `Settlement failed: ${error.message}`,
+        message,
       };
     }
   }

@@ -96,6 +96,14 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
   - Updated verification and settlement logic for token transfers
   - Enhanced frontend to display fUSD vs ETH transactions
   - Updated API documentation with ERC-20 examples
+- 2025-11-01: **Refactored to true x402-compliant non-custodial model**
+  - Changed from facilitator sending own funds to broadcasting user-signed transactions
+  - Payment flow now: User signs tx → Facilitator broadcasts → Direct user→recipient transfer
+  - Verification parses RLP-encoded signed transactions and validates all parameters
+  - Settlement uses `provider.broadcastTransaction()` instead of `wallet.sendTransaction()`
+  - Facilitator never holds or controls user funds (trust-minimizing architecture)
+  - Updated API documentation with signed transaction creation examples
+  - Works with any ERC-20 token (not limited to EIP-3009 support)
 
 ## User Preferences
 

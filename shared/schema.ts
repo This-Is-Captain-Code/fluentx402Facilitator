@@ -39,11 +39,12 @@ export const PaymentScheme = {
 export const FUSD_ADDRESS = "0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9";
 
 export const verifyRequestSchema = z.object({
-  paymentPayload: z.string(),
+  paymentPayload: z.string(), // Serialized signed transaction (RLP-encoded)
   paymentDetails: z.object({
     networkId: z.string(),
     amount: z.string(),
-    to: z.string(),
+    to: z.string(), // Recipient address
+    from: z.string().optional(), // Sender address (recovered from signature if not provided)
     scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20]),
     tokenAddress: z.string().optional(),
   }),
@@ -60,11 +61,12 @@ export const verifyResponseSchema = z.object({
 export type VerifyResponse = z.infer<typeof verifyResponseSchema>;
 
 export const settleRequestSchema = z.object({
-  paymentPayload: z.string(),
+  paymentPayload: z.string(), // Serialized signed transaction (RLP-encoded)
   paymentDetails: z.object({
     networkId: z.string(),
     amount: z.string(),
-    to: z.string(),
+    to: z.string(), // Recipient address
+    from: z.string().optional(), // Sender address (recovered from signature if not provided)
     scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20]),
     tokenAddress: z.string().optional(),
   }),
