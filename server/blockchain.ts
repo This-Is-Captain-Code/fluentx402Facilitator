@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { PaymentScheme, FUSD_ADDRESS } from "@shared/schema";
 
 const FLUENT_TESTNET_CONFIG = {
   chainId: 20994,
@@ -8,12 +9,25 @@ const FLUENT_TESTNET_CONFIG = {
   explorer: "https://testnet.fluentscan.xyz/",
 };
 
+// Standard ERC-20 ABI for token transfers
+const ERC20_ABI = [
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function balanceOf(address account) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+  "function name() view returns (string)",
+];
+
 export class BlockchainService {
   private provider: ethers.JsonRpcProvider;
   private wallet: ethers.Wallet | null = null;
+  private fusdContract: ethers.Contract;
 
   constructor() {
     this.provider = new ethers.JsonRpcProvider(FLUENT_TESTNET_CONFIG.rpcUrl);
+    
+    // Initialize fUSD contract (read-only)
+    this.fusdContract = new ethers.Contract(FUSD_ADDRESS, ERC20_ABI, this.provider);
     
     // Only initialize wallet if private key is provided
     if (process.env.FACILITATOR_PRIVATE_KEY) {
@@ -37,6 +51,17 @@ export class BlockchainService {
     return ethers.formatEther(balance);
   }
 
+  async getTokenBalance(address: string, tokenAddress: string): Promise<string> {
+    try {
+      const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, this.provider);
+      const balance = await tokenContract.balanceOf(address);
+      const decimals = await tokenContract.decimals();
+      return ethers.formatUnits(balance, decimals);
+    } catch (error: any) {
+      throw new Error(`Failed to get token balance: ${error.message}`);
+    }
+  }
+
   async verifyPaymentPayload(
     paymentPayload: string,
     paymentDetails: {
@@ -44,6 +69,7 @@ export class BlockchainService {
       amount: string;
       to: string;
       scheme: string;
+      tokenAddress?: string;
     }
   ): Promise<{ valid: boolean; message?: string; recoveredAddress?: string }> {
     try {
@@ -56,19 +82,58 @@ export class BlockchainService {
       }
 
       // Verify scheme
-      if (paymentDetails.scheme !== "evm-native") {
+      if (paymentDetails.scheme !== PaymentScheme.EVM_NATIVE && paymentDetails.scheme !== PaymentScheme.EVM_ERC20) {
         return {
           valid: false,
           message: `Unsupported payment scheme: ${paymentDetails.scheme}`,
         };
       }
 
+      // For ERC-20 payments, verify token address
+      if (paymentDetails.scheme === PaymentScheme.EVM_ERC20) {
+        if (!paymentDetails.tokenAddress) {
+          return {
+            valid: false,
+            message: "Token address required for evm-erc20 scheme",
+          };
+        }
+
+        // Verify token address matches fUSD
+        if (paymentDetails.tokenAddress.toLowerCase() !== FUSD_ADDRESS.toLowerCase()) {
+          return {
+            valid: false,
+            message: `Unsupported token. Only fUSD (${FUSD_ADDRESS}) is supported`,
+          };
+        }
+
+        if (!ethers.isAddress(paymentDetails.tokenAddress)) {
+          return {
+            valid: false,
+            message: "Invalid token address",
+          };
+        }
+      }
+
       // Parse and verify amount
-      const amountWei = ethers.parseEther(paymentDetails.amount);
-      if (amountWei <= 0n) {
+      let amountValue: bigint;
+      try {
+        if (paymentDetails.scheme === PaymentScheme.EVM_ERC20) {
+          // For fUSD, use token decimals (typically 18)
+          amountValue = ethers.parseUnits(paymentDetails.amount, 18);
+        } else {
+          amountValue = ethers.parseEther(paymentDetails.amount);
+        }
+        
+        if (amountValue <= 0n) {
+          return {
+            valid: false,
+            message: "Payment amount must be greater than 0",
+          };
+        }
+      } catch (error) {
         return {
           valid: false,
-          message: "Payment amount must be greater than 0",
+          message: "Invalid payment amount format",
         };
       }
 
@@ -98,7 +163,8 @@ export class BlockchainService {
       
       try {
         // Create a message to verify (this would be standardized in production)
-        const message = `Pay ${paymentDetails.amount} ETH to ${paymentDetails.to} on network ${paymentDetails.networkId}`;
+        const currencyLabel = paymentDetails.scheme === PaymentScheme.EVM_ERC20 ? "fUSD" : "ETH";
+        const message = `Pay ${paymentDetails.amount} ${currencyLabel} to ${paymentDetails.to} on network ${paymentDetails.networkId}`;
         
         // Try to recover address from signature
         if (paymentPayload.length >= 132) { // Standard signature length
@@ -126,6 +192,8 @@ export class BlockchainService {
     paymentDetails: {
       amount: string;
       to: string;
+      scheme: string;
+      tokenAddress?: string;
     }
   ): Promise<{
     success: boolean;
@@ -150,28 +218,71 @@ export class BlockchainService {
         };
       }
 
-      // Parse amount
-      const amountWei = ethers.parseEther(paymentDetails.amount);
+      let tx: ethers.ContractTransactionResponse | ethers.TransactionResponse;
+      let receipt: ethers.TransactionReceipt | null;
 
-      // Check facilitator balance
-      const balance = await this.wallet.provider.getBalance(this.wallet.address);
-      if (balance < amountWei) {
-        return {
-          success: false,
-          message: `Insufficient facilitator balance. Has: ${ethers.formatEther(balance)} ETH, needs: ${paymentDetails.amount} ETH`,
-        };
+      if (paymentDetails.scheme === PaymentScheme.EVM_ERC20) {
+        // ERC-20 token settlement
+        if (!paymentDetails.tokenAddress) {
+          return {
+            success: false,
+            message: "Token address required for ERC-20 settlement",
+          };
+        }
+
+        if (paymentDetails.tokenAddress.toLowerCase() !== FUSD_ADDRESS.toLowerCase()) {
+          return {
+            success: false,
+            message: `Unsupported token. Only fUSD (${FUSD_ADDRESS}) is supported`,
+          };
+        }
+
+        // Parse amount with token decimals
+        const amountTokens = ethers.parseUnits(paymentDetails.amount, 18);
+
+        // Create token contract instance with wallet
+        const tokenContract = new ethers.Contract(FUSD_ADDRESS, ERC20_ABI, this.wallet);
+
+        // Check facilitator token balance
+        const balance = await tokenContract.balanceOf(this.wallet.address);
+        if (balance < amountTokens) {
+          return {
+            success: false,
+            message: `Insufficient fUSD balance. Has: ${ethers.formatUnits(balance, 18)} fUSD, needs: ${paymentDetails.amount} fUSD`,
+          };
+        }
+
+        // Execute token transfer
+        tx = await tokenContract.transfer(paymentDetails.to, amountTokens);
+        console.log(`📤 fUSD transfer sent: ${tx.hash}`);
+
+        // Wait for confirmation
+        receipt = await tx.wait();
+
+      } else {
+        // Native ETH settlement
+        const amountWei = ethers.parseEther(paymentDetails.amount);
+
+        // Check facilitator balance
+        const balance = await this.provider.getBalance(this.wallet.address);
+        if (balance < amountWei) {
+          return {
+            success: false,
+            message: `Insufficient facilitator balance. Has: ${ethers.formatEther(balance)} ETH, needs: ${paymentDetails.amount} ETH`,
+          };
+        }
+
+        // Send transaction
+        tx = await this.wallet.sendTransaction({
+          to: paymentDetails.to,
+          value: amountWei,
+        });
+
+        console.log(`📤 ETH transaction sent: ${tx.hash}`);
+
+        // Wait for confirmation
+        receipt = await tx.wait();
       }
-
-      // Send transaction
-      const tx = await this.wallet.sendTransaction({
-        to: paymentDetails.to,
-        value: amountWei,
-      });
-
-      console.log(`📤 Transaction sent: ${tx.hash}`);
-
-      // Wait for confirmation
-      const receipt = await tx.wait();
 
       if (!receipt) {
         return {

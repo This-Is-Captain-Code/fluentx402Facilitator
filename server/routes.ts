@@ -128,6 +128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settlementResult = await blockchainService.settlePayment({
         amount: paymentDetails.amount,
         to: paymentDetails.to,
+        scheme: paymentDetails.scheme,
+        tokenAddress: paymentDetails.tokenAddress,
       });
 
       if (!settlementResult.success) {

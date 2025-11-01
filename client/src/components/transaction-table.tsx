@@ -36,6 +36,13 @@ export function TransactionTable({
     setTimeout(() => setCopiedHash(null), 2000);
   };
 
+  const getCurrencySymbol = (tx: Transaction) => {
+    if (tx.scheme === "evm-erc20") {
+      return "fUSD";
+    }
+    return "ETH";
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string }> = {
       verified: { variant: "default", label: "Verified" },
@@ -110,7 +117,7 @@ export function TransactionTable({
                 </div>
               </TableCell>
               <TableCell className="font-mono" data-testid={`text-amount-${tx.id}`}>
-                {tx.amount} ETH
+                {tx.amount} {getCurrencySymbol(tx)}
               </TableCell>
               <TableCell>{getStatusBadge(tx.status)}</TableCell>
               <TableCell>

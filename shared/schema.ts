@@ -29,13 +29,23 @@ export type Transaction = typeof transactions.$inferSelect;
 
 // x402 Protocol Types (not stored in DB, just for API contracts)
 
+// Supported payment schemes
+export const PaymentScheme = {
+  EVM_NATIVE: "evm-native",
+  EVM_ERC20: "evm-erc20",
+} as const;
+
+// Fluent testnet fUSD token contract address
+export const FUSD_ADDRESS = "0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9";
+
 export const verifyRequestSchema = z.object({
   paymentPayload: z.string(),
   paymentDetails: z.object({
     networkId: z.string(),
     amount: z.string(),
     to: z.string(),
-    scheme: z.string(),
+    scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20]),
+    tokenAddress: z.string().optional(),
   }),
 });
 
@@ -55,7 +65,8 @@ export const settleRequestSchema = z.object({
     networkId: z.string(),
     amount: z.string(),
     to: z.string(),
-    scheme: z.string(),
+    scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20]),
+    tokenAddress: z.string().optional(),
   }),
   transactionId: z.string().optional(),
 });

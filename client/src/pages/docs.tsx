@@ -201,6 +201,60 @@ export default function Docs() {
           </Card>
         </section>
 
+        {/* ERC-20 / fUSD Payments */}
+        <section className="mb-12" id="erc20">
+          <h2 className="text-2xl font-semibold mb-4">ERC-20 Token Payments (fUSD)</h2>
+          <p className="text-muted-foreground mb-6">
+            The facilitator supports fUSD token payments on Fluent testnet. Use the <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">evm-erc20</code> scheme 
+            and include the token address in your payment details.
+          </p>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>fUSD Payment Example</CardTitle>
+              <CardDescription>
+                Verify or settle a payment using fUSD tokens instead of native ETH
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h4 className="font-semibold mb-3">Request Body (Verify or Settle)</h4>
+                <CodeBlock
+                  language="json"
+                  code={`{
+  "paymentPayload": "0x...",
+  "paymentDetails": {
+    "networkId": "20994",
+    "amount": "10.0",
+    "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "scheme": "evm-erc20",
+    "tokenAddress": "0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9"
+  }
+}`}
+                />
+              </div>
+
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="font-semibold mb-1">fUSD Contract Address</div>
+                  <code className="text-xs break-all">0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9</code>
+                </AlertDescription>
+              </Alert>
+
+              <div>
+                <h4 className="font-semibold mb-3">Key Differences</h4>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Set <code className="font-mono bg-muted px-1 py-0.5 rounded">scheme</code> to "evm-erc20"</li>
+                  <li>Include <code className="font-mono bg-muted px-1 py-0.5 rounded">tokenAddress</code> field with fUSD contract address</li>
+                  <li>Amount is denominated in fUSD (not ETH)</li>
+                  <li>Token transfers require the facilitator wallet to have sufficient fUSD balance</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Stats Endpoint */}
         <section className="mb-12" id="stats">
           <Card>
@@ -293,6 +347,10 @@ export default function Docs() {
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground mb-1">Native Token</dt>
                   <dd className="font-mono">ETH</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground mb-1">fUSD Contract</dt>
+                  <dd className="font-mono text-xs break-all">0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground mb-1">Faucet</dt>
