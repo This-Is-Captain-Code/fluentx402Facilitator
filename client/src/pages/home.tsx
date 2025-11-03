@@ -182,7 +182,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <pre className="bg-background rounded-md p-4 overflow-x-auto border text-sm font-mono">
-{`const response = await fetch('${window.location.origin}/api/verify', {
+{`const response = await fetch('https://fluentx402.replit.app/api/verify', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
