@@ -32,7 +32,7 @@ export default function Docs() {
           <Alert className="mb-6">
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Base URL: <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">{window.location.origin}/api</code>
+              Base URL: <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">https://fluentx402.replit.app/api</code>
             </AlertDescription>
           </Alert>
         </section>
@@ -195,7 +195,7 @@ const tx = await wallet.signTransaction({
                 <CodeBlock
                   language="javascript"
                   code={`const verifyPayment = async (payload, details) => {
-  const response = await fetch('${window.location.origin}/api/verify', {
+  const response = await fetch('https://fluentx402.replit.app/api/verify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -276,7 +276,7 @@ const tx = await wallet.signTransaction({
                 <CodeBlock
                   language="javascript"
                   code={`const settlePayment = async (payload, details) => {
-  const response = await fetch('${window.location.origin}/api/settle', {
+  const response = await fetch('https://fluentx402.replit.app/api/settle', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
