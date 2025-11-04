@@ -51,14 +51,75 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                <span>Native Token: ETH</span>
+                <span>Supports: ETH + FLUID</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-purple-500"></div>
                 <span>Protocol: x402</span>
               </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-amber-500"></div>
+                <span>EIP-3009 Gasless</span>
+              </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* FLUID Token Highlight */}
+      <section className="py-16 px-6 bg-gradient-to-b from-primary/5 to-transparent">
+        <div className="container max-w-5xl mx-auto">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur">
+            <CardHeader className="text-center">
+              <div className="inline-flex items-center justify-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium border border-primary/20 mx-auto mb-4 w-fit">
+                <Zap className="h-4 w-4" />
+                <span>FLUID Stablecoin Support</span>
+              </div>
+              <CardTitle className="text-2xl md:text-3xl">
+                Powered by Fluent USD (FLUID)
+              </CardTitle>
+              <CardDescription className="text-base max-w-2xl mx-auto">
+                Built-in support for gasless stablecoin payments using EIP-3009 compliant FLUID tokens
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    Dual Payment Support
+                  </h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground pl-7">
+                    <li>• Native ETH transfers (evm-native)</li>
+                    <li>• FLUID token payments (evm-erc20)</li>
+                    <li>• Unified verification API</li>
+                  </ul>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    EIP-3009 Gasless Transfers
+                  </h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground pl-7">
+                    <li>• Meta-transaction support</li>
+                    <li>• User never pays gas fees</li>
+                    <li>• Signature-based authorization</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-6 p-4 bg-muted/50 rounded-md border">
+                <div className="flex items-start gap-3">
+                  <Code className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">FLUID Token Contract</p>
+                    <p className="text-xs font-mono text-muted-foreground break-all">
+                      0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -174,22 +235,54 @@ export default function Home() {
             </p>
           </div>
 
-          <Card className="bg-muted/50 border-2">
-            <CardHeader>
-              <CardTitle className="text-sm font-mono text-muted-foreground">
-                Example: Verify Payment
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="bg-background rounded-md p-4 overflow-x-auto border text-sm font-mono">
+          <div className="space-y-6">
+            <Card className="bg-muted/50 border-2">
+              <CardHeader>
+                <CardTitle className="text-sm font-mono text-muted-foreground">
+                  Example: Verify FLUID Payment
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-background rounded-md p-4 overflow-x-auto border text-sm font-mono">
 {`const response = await fetch('https://fluentx402.replit.app/api/verify', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    paymentPayload: signedPayload,
+    paymentPayload: signedTransaction,
     paymentDetails: {
       networkId: '20994',
-      amount: '0.01',
+      amount: '10.00',  // 10 FLUID tokens
+      to: recipientAddress,
+      scheme: 'evm-erc20',  // FLUID token payment
+      token: '0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0'
+    }
+  })
+});
+
+const result = await response.json();
+if (result.valid) {
+  // FLUID payment verified - proceed with request
+}`}
+                </pre>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50 border-2">
+              <CardHeader>
+                <CardTitle className="text-sm font-mono text-muted-foreground">
+                  Example: Verify Native ETH Payment
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-background rounded-md p-4 overflow-x-auto border text-sm font-mono">
+{`const response = await fetch('https://fluentx402.replit.app/api/verify', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    paymentPayload: signedTransaction,
+    paymentDetails: {
+      networkId: '20994',
+      amount: '0.01',  // 0.01 ETH
       to: recipientAddress,
       scheme: 'evm-native'
     }
@@ -198,11 +291,12 @@ export default function Home() {
 
 const result = await response.json();
 if (result.valid) {
-  // Payment verified - proceed with request
+  // ETH payment verified - proceed with request
 }`}
-              </pre>
-            </CardContent>
-          </Card>
+                </pre>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="text-center mt-8">
             <Link href="/docs">
@@ -252,10 +346,11 @@ if (result.valid) {
 
             <div>
               <h3 className="font-semibold mb-4">Network Info</h3>
-              <ul className="space-y-2 text-sm font-mono text-muted-foreground">
-                <li>Chain ID: 20994</li>
-                <li>Symbol: ETH</li>
-                <li>RPC: rpc.testnet.fluent.xyz</li>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="font-mono">Chain ID: 20994</li>
+                <li className="font-mono">Native: ETH</li>
+                <li className="font-mono">Stablecoin: FLUID</li>
+                <li className="font-mono text-xs">RPC: rpc.testnet.fluent.xyz</li>
               </ul>
             </div>
           </div>
