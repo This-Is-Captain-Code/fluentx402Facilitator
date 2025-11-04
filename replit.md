@@ -104,6 +104,12 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
   - Facilitator never holds or controls user funds (trust-minimizing architecture)
   - Updated API documentation with signed transaction creation examples
   - Works with any ERC-20 token (not limited to EIP-3009 support)
+- 2025-11-04: **Updated front page with FLUID token showcase**
+  - Added FLUID Token Highlight section prominently featuring dual payment support
+  - Updated hero badges to show "Supports: ETH + FLUID" and "EIP-3009 Gasless"
+  - Added dedicated code examples for both FLUID (evm-erc20) and ETH (evm-native) payment verification
+  - Enhanced footer to include FLUID stablecoin information
+  - Showcased EIP-3009 gasless transfer capabilities and meta-transaction support
 
 ## User Preferences
 
