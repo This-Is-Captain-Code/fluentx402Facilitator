@@ -6,10 +6,10 @@ This guide explains how to integrate the x402 Protocol Payment Verification and 
 
 ## Base URL
 
-Replace `YOUR_API_BASE_URL` with the actual deployed URL of this API server.
+The API is deployed and accessible at:
 
 ```
-https://YOUR_API_BASE_URL
+https://fluentx402.replit.app
 ```
 
 ---
@@ -186,7 +186,7 @@ Retrieve payment processing statistics and recent transactions.
 
 ```typescript
 // Configuration
-const API_BASE_URL = 'https://YOUR_API_BASE_URL';
+const API_BASE_URL = 'https://fluentx402.replit.app';
 
 // Type definitions
 interface PaymentDetails {
@@ -415,7 +415,7 @@ export function usePayment(apiBaseUrl: string): UsePaymentResult {
 import requests
 from typing import Dict, Optional
 
-API_BASE_URL = "https://YOUR_API_BASE_URL"
+API_BASE_URL = "https://fluentx402.replit.app"
 
 class PaymentAPI:
     def __init__(self, base_url: str):
@@ -523,13 +523,13 @@ if __name__ == "__main__":
 
 ```bash
 # Health Check
-curl -X GET https://YOUR_API_BASE_URL/api/health
+curl -X GET https://fluentx402.replit.app/api/health
 
 # Get Network Config
-curl -X GET https://YOUR_API_BASE_URL/api/network
+curl -X GET https://fluentx402.replit.app/api/network
 
 # Verify Payment
-curl -X POST https://YOUR_API_BASE_URL/api/verify \
+curl -X POST https://fluentx402.replit.app/api/verify \
   -H "Content-Type: application/json" \
   -d '{
     "paymentPayload": "0x...",
@@ -542,7 +542,7 @@ curl -X POST https://YOUR_API_BASE_URL/api/verify \
   }'
 
 # Settle Payment
-curl -X POST https://YOUR_API_BASE_URL/api/settle \
+curl -X POST https://fluentx402.replit.app/api/settle \
   -H "Content-Type: application/json" \
   -d '{
     "paymentPayload": "0x...",
@@ -556,7 +556,7 @@ curl -X POST https://YOUR_API_BASE_URL/api/settle \
   }'
 
 # Get Statistics
-curl -X GET https://YOUR_API_BASE_URL/api/stats
+curl -X GET https://fluentx402.replit.app/api/stats
 ```
 
 ---
@@ -564,14 +564,12 @@ curl -X GET https://YOUR_API_BASE_URL/api/stats
 ## Integration Steps
 
 ### 1. Setup
-1. Deploy this API server to your hosting provider
-2. Note the deployed URL
-3. Configure environment variables (if needed)
+The API is already deployed at `https://fluentx402.replit.app` - no additional setup required!
 
 ### 2. Client-Side Integration
 1. Install required dependencies (ethers.js for signing transactions)
 2. Copy the appropriate code examples above
-3. Replace `YOUR_API_BASE_URL` with your actual API URL
+3. The examples are already configured with the correct API URL
 
 ### 3. Create Signed Transactions
 You'll need to create RLP-encoded signed transactions using a library like ethers.js:
