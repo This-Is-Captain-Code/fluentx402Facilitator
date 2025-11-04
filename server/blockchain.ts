@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { PaymentScheme, FUSD_ADDRESS } from "@shared/schema";
+import { PaymentScheme, FLUID_ADDRESS } from "@shared/schema";
 
 const FLUENT_TESTNET_CONFIG = {
   chainId: 20994,
@@ -9,25 +9,30 @@ const FLUENT_TESTNET_CONFIG = {
   explorer: "https://testnet.fluentscan.xyz/",
 };
 
-// Standard ERC-20 ABI for token transfers
+// ERC-20 + EIP 3009 ABI for token transfers
 const ERC20_ABI = [
   "function transfer(address to, uint256 amount) returns (bool)",
   "function balanceOf(address account) view returns (uint256)",
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
   "function name() view returns (string)",
+  // EIP 3009 functions
+  "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  "function receiveWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  "function cancelAuthorization(address authorizer, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  "function authorizationState(address authorizer, bytes32 nonce) view returns (bool)",
 ];
 
 export class BlockchainService {
   private provider: ethers.JsonRpcProvider;
   private wallet: ethers.Wallet | null = null;
-  private fusdContract: ethers.Contract;
+  private fluidContract: ethers.Contract;
 
   constructor() {
     this.provider = new ethers.JsonRpcProvider(FLUENT_TESTNET_CONFIG.rpcUrl);
     
-    // Initialize fUSD contract (read-only)
-    this.fusdContract = new ethers.Contract(FUSD_ADDRESS, ERC20_ABI, this.provider);
+    // Initialize FLUID contract (Fluent USD - EIP 3009 compliant)
+    this.fluidContract = new ethers.Contract(FLUID_ADDRESS, ERC20_ABI, this.provider);
     
     // Wallet is optional - only needed for facilitator admin tasks, not for broadcasting user txs
     if (process.env.FACILITATOR_PRIVATE_KEY) {
@@ -105,10 +110,10 @@ export class BlockchainService {
           };
         }
 
-        if (paymentDetails.tokenAddress.toLowerCase() !== FUSD_ADDRESS.toLowerCase()) {
+        if (paymentDetails.tokenAddress.toLowerCase() !== FLUID_ADDRESS.toLowerCase()) {
           return {
             valid: false,
-            message: `Unsupported token. Only fUSD (${FUSD_ADDRESS}) is supported`,
+            message: `Unsupported token. Only FLUID (${FLUID_ADDRESS}) is supported`,
           };
         }
 
@@ -259,7 +264,7 @@ export class BlockchainService {
           if (tokenBalance < amount) {
             return {
               valid: false,
-              message: `Insufficient token balance. Has: ${ethers.formatUnits(tokenBalance, 18)} fUSD, needs: ${paymentDetails.amount} fUSD`,
+              message: `Insufficient token balance. Has: ${ethers.formatUnits(tokenBalance, 18)} FLUID, needs: ${paymentDetails.amount} FLUID`,
             };
           }
 

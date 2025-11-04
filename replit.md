@@ -27,15 +27,15 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
 - x402 protocol implementation
 
 ### Key Features
-1. `/api/verify` - Payment verification endpoint (supports ETH and fUSD)
-2. `/api/settle` - Payment settlement endpoint (supports ETH and fUSD)
+1. `/api/verify` - Payment verification endpoint (supports ETH and FLUID)
+2. `/api/settle` - Payment settlement endpoint (supports ETH and FLUID)
 3. `/api/stats` - Statistics and recent transactions
 4. Dashboard with real-time transaction monitoring
 5. Comprehensive API documentation with ERC-20 examples
 6. Professional landing page
 7. **Payment Schemes**:
    - `evm-native` - Native ETH payments
-   - `evm-erc20` - fUSD token payments (0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9)
+   - `evm-erc20` - FLUID token payments (0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0)
 
 ## Network Configuration
 
@@ -44,7 +44,7 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
 - **RPC URL**: https://rpc.testnet.fluent.xyz/
 - **Explorer**: https://testnet.fluentscan.xyz/
 - **Native Token**: ETH
-- **fUSD Token**: 0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9
+- **FLUID Token**: 0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0 (Fluent USD - EIP 3009 compliant)
 - **Faucet**: https://testnet.fluent.xyz/dev-portal
 
 ## Environment Variables
@@ -72,9 +72,9 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
 ### Phase 2: Backend ✅
 - Implemented API endpoints for verify, settle, stats
 - Blockchain integration with ethers.js
-- Payment verification logic (ETH and fUSD)
-- Transaction settlement and monitoring (ETH and fUSD)
-- ERC-20 token support with fUSD integration
+- Payment verification logic (ETH and FLUID)
+- Transaction settlement and monitoring (ETH and FLUID)
+- ERC-20 token support with FLUID integration
 
 ### Phase 3: Integration & Testing ✅
 - Connected frontend to backend
@@ -90,11 +90,11 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
 - 2025-11-01: Dark mode theming configured
 - 2025-11-01: Storage interface defined for transaction management
 - 2025-11-01: Backend implementation with full blockchain integration
-- 2025-11-01: **fUSD ERC-20 token support added**
+- 2025-11-01: **FLUID ERC-20 token support added**
   - Added `evm-erc20` payment scheme
-  - Integrated fUSD contract (0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9)
+  - Integrated FLUID contract (0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0) - Fluent USD stablecoin with EIP 3009 compliance
   - Updated verification and settlement logic for token transfers
-  - Enhanced frontend to display fUSD vs ETH transactions
+  - Enhanced frontend to display FLUID vs ETH transactions
   - Updated API documentation with ERC-20 examples
 - 2025-11-01: **Refactored to true x402-compliant non-custodial model**
   - Changed from facilitator sending own funds to broadcasting user-signed transactions

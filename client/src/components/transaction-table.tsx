@@ -38,7 +38,7 @@ export function TransactionTable({
 
   const getCurrencySymbol = (tx: Transaction) => {
     if (tx.scheme === "evm-erc20") {
-      return "fUSD";
+      return "FLUID";
     }
     return "ETH";
   };

@@ -35,8 +35,8 @@ export const PaymentScheme = {
   EVM_ERC20: "evm-erc20",
 } as const;
 
-// Fluent testnet fUSD token contract address
-export const FUSD_ADDRESS = "0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9";
+// Fluent testnet FLUID token contract address (Fluent USD - EIP 3009 compliant)
+export const FLUID_ADDRESS = "0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0";
 
 export const verifyRequestSchema = z.object({
   paymentPayload: z.string(), // Serialized signed transaction (RLP-encoded)

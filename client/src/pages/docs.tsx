@@ -90,25 +90,25 @@ const tx = await wallet.signTransaction({
               </div>
 
               <div>
-                <h4 className="font-semibold mb-3">For fUSD Token Payments (ERC-20)</h4>
+                <h4 className="font-semibold mb-3">For FLUID Token Payments (ERC-20)</h4>
                 <CodeBlock
                   language="javascript"
                   code={`import { ethers } from 'ethers';
 
-const FUSD_ADDRESS = "0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9";
-const fUSDContract = new ethers.Contract(FUSD_ADDRESS, [
+const FLUID_ADDRESS = "0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0";
+const fluidContract = new ethers.Contract(FLUID_ADDRESS, [
   "function transfer(address to, uint256 amount) returns (bool)"
 ], wallet);
 
 // Encode transfer call
-const transferData = fUSDContract.interface.encodeFunctionData(
+const transferData = fluidContract.interface.encodeFunctionData(
   "transfer",
-  [recipientAddress, ethers.parseUnits("10.0", 18)] // 10 fUSD
+  [recipientAddress, ethers.parseUnits("10.0", 18)] // 10 FLUID
 );
 
-// Sign transaction calling fUSD.transfer()
+// Sign transaction calling FLUID.transfer()
 const tx = await wallet.signTransaction({
-  to: FUSD_ADDRESS,                // Token contract
+  to: FLUID_ADDRESS,               // Token contract
   data: transferData,              // Encoded transfer() call
   value: 0,                        // No ETH value for token transfers
   chainId: 20994,
@@ -300,19 +300,19 @@ const tx = await wallet.signTransaction({
           </Card>
         </section>
 
-        {/* ERC-20 / fUSD Payments */}
+        {/* ERC-20 / FLUID Payments */}
         <section className="mb-12" id="erc20">
-          <h2 className="text-2xl font-semibold mb-4">ERC-20 Token Payments (fUSD)</h2>
+          <h2 className="text-2xl font-semibold mb-4">ERC-20 Token Payments (FLUID)</h2>
           <p className="text-muted-foreground mb-6">
-            The facilitator supports fUSD token payments on Fluent testnet. Use the <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">evm-erc20</code> scheme 
+            The facilitator supports FLUID (Fluent USD) token payments on Fluent testnet. Use the <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">evm-erc20</code> scheme 
             and include the token address in your payment details.
           </p>
 
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>fUSD Payment Example</CardTitle>
+              <CardTitle>FLUID Payment Example</CardTitle>
               <CardDescription>
-                Verify or settle a payment using fUSD tokens instead of native ETH
+                Verify or settle a payment using FLUID tokens instead of native ETH
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -327,7 +327,7 @@ const tx = await wallet.signTransaction({
     "amount": "10.0",
     "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     "scheme": "evm-erc20",
-    "tokenAddress": "0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9"
+    "tokenAddress": "0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0"
   }
 }`}
                 />
@@ -336,8 +336,8 @@ const tx = await wallet.signTransaction({
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  <div className="font-semibold mb-1">fUSD Contract Address</div>
-                  <code className="text-xs break-all">0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9</code>
+                  <div className="font-semibold mb-1">FLUID Contract Address (Fluent USD - EIP 3009 compliant)</div>
+                  <code className="text-xs break-all">0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0</code>
                 </AlertDescription>
               </Alert>
 
@@ -345,9 +345,9 @@ const tx = await wallet.signTransaction({
                 <h4 className="font-semibold mb-3">Key Differences</h4>
                 <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
                   <li>Set <code className="font-mono bg-muted px-1 py-0.5 rounded">scheme</code> to "evm-erc20"</li>
-                  <li>Include <code className="font-mono bg-muted px-1 py-0.5 rounded">tokenAddress</code> field with fUSD contract address</li>
-                  <li>Amount is denominated in fUSD (not ETH)</li>
-                  <li>Token transfers require the facilitator wallet to have sufficient fUSD balance</li>
+                  <li>Include <code className="font-mono bg-muted px-1 py-0.5 rounded">tokenAddress</code> field with FLUID contract address</li>
+                  <li>Amount is denominated in FLUID (not ETH)</li>
+                  <li>User must have sufficient FLUID balance in their wallet</li>
                 </ul>
               </div>
             </CardContent>
@@ -448,8 +448,8 @@ const tx = await wallet.signTransaction({
                   <dd className="font-mono">ETH</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-muted-foreground mb-1">fUSD Contract</dt>
-                  <dd className="font-mono text-xs break-all">0x7A9ab9D0E2ca7472d1339F082F79F2F712F8Ebc9</dd>
+                  <dt className="text-sm font-medium text-muted-foreground mb-1">FLUID Contract</dt>
+                  <dd className="font-mono text-xs break-all">0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground mb-1">Faucet</dt>
