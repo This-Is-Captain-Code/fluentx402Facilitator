@@ -125,14 +125,10 @@ export class BlockchainService {
         }
       }
 
-      // Parse expected amount
+      // Parse expected amount (already in wei - smallest unit)
       let expectedAmountValue: bigint;
       try {
-        if (paymentDetails.scheme === PaymentScheme.EVM_ERC20) {
-          expectedAmountValue = ethers.parseUnits(paymentDetails.amount, 18);
-        } else {
-          expectedAmountValue = ethers.parseEther(paymentDetails.amount);
-        }
+        expectedAmountValue = BigInt(paymentDetails.amount);
         
         if (expectedAmountValue <= BigInt(0)) {
           return {
@@ -143,7 +139,7 @@ export class BlockchainService {
       } catch (error) {
         return {
           valid: false,
-          message: "Invalid payment amount format",
+          message: "Invalid payment amount format - must be a valid wei amount string",
         };
       }
 
@@ -204,7 +200,7 @@ export class BlockchainService {
         if (parsedTx.value !== expectedAmountValue) {
           return {
             valid: false,
-            message: `Amount mismatch. Expected ${paymentDetails.amount} ETH, got ${ethers.formatEther(parsedTx.value)} ETH`,
+            message: `Amount mismatch. Expected ${paymentDetails.amount} wei, got ${parsedTx.value.toString()} wei`,
           };
         }
 
@@ -253,7 +249,7 @@ export class BlockchainService {
           if (amount !== expectedAmountValue) {
             return {
               valid: false,
-              message: `Token amount mismatch. Expected ${paymentDetails.amount}, got ${ethers.formatUnits(amount, 18)}`,
+              message: `Token amount mismatch. Expected ${paymentDetails.amount} wei, got ${amount.toString()} wei`,
             };
           }
 
@@ -264,7 +260,7 @@ export class BlockchainService {
           if (tokenBalance < amount) {
             return {
               valid: false,
-              message: `Insufficient token balance. Has: ${ethers.formatUnits(tokenBalance, 18)} FLUID, needs: ${paymentDetails.amount} FLUID`,
+              message: `Insufficient token balance. Has: ${tokenBalance.toString()} wei, needs: ${paymentDetails.amount} wei`,
             };
           }
 
