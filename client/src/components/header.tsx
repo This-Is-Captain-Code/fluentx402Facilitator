@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "./theme-toggle";
-import { Network, BookOpen, LayoutDashboard } from "lucide-react";
+import { BookOpen, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Header() {
@@ -11,7 +11,11 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between px-6">
         <Link href="/" data-testid="link-home">
           <div className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md -ml-3 cursor-pointer">
-            <Network className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+            <img 
+              src="/fluent-logo.jpg" 
+              alt="Fluent Logo" 
+              className="h-6 w-6 sm:h-7 sm:w-7 rounded-sm flex-shrink-0"
+            />
             <div className="flex flex-col min-w-0">
               <span className="text-base sm:text-lg font-bold tracking-tight">x402</span>
               <span className="text-xs text-muted-foreground font-mono hidden sm:block">Fluent Testnet</span>

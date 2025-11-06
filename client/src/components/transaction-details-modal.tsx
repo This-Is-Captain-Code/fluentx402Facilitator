@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Copy, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
+import { formatWeiToEth } from "@/lib/utils";
 
 interface TransactionDetailsModalProps {
   transaction: Transaction | null;
@@ -41,6 +42,13 @@ export function TransactionDetailsModal({
       pending: "secondary",
     };
     return colors[status] || "secondary";
+  };
+
+  const getCurrencySymbol = (tx: Transaction) => {
+    if (tx.scheme === "evm-erc20" || tx.scheme === "evm-erc20-gasless") {
+      return "FLUID";
+    }
+    return "ETH";
   };
 
   const DetailRow = ({
@@ -111,7 +119,7 @@ export function TransactionDetailsModal({
 
           <DetailRow
             label="Amount"
-            value={`${transaction.amount} ETH`}
+            value={`${formatWeiToEth(transaction.amount)} ${getCurrencySymbol(transaction)}`}
             monospace
           />
 

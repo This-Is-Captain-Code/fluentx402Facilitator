@@ -8,6 +8,7 @@ import { type Transaction, type Stats } from "@shared/schema";
 import { CheckCircle, FileCheck, DollarSign, TrendingUp, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatWeiToEth } from "@/lib/utils";
 
 export default function Dashboard() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -75,7 +76,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Volume"
-                value={`${stats?.totalVolume || "0"} ETH`}
+                value={`${formatWeiToEth(stats?.totalVolume || "0")} ETH`}
                 icon={DollarSign}
               />
               <StatsCard

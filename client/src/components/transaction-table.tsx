@@ -12,6 +12,7 @@ import {
 import { ExternalLink, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
+import { formatWeiToEth } from "@/lib/utils";
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -37,7 +38,7 @@ export function TransactionTable({
   };
 
   const getCurrencySymbol = (tx: Transaction) => {
-    if (tx.scheme === "evm-erc20") {
+    if (tx.scheme === "evm-erc20" || tx.scheme === "evm-erc20-gasless") {
       return "FLUID";
     }
     return "ETH";
@@ -117,7 +118,7 @@ export function TransactionTable({
                 </div>
               </TableCell>
               <TableCell className="font-mono" data-testid={`text-amount-${tx.id}`}>
-                {tx.amount} {getCurrencySymbol(tx)}
+                {formatWeiToEth(tx.amount)} {getCurrencySymbol(tx)}
               </TableCell>
               <TableCell>{getStatusBadge(tx.status)}</TableCell>
               <TableCell>
