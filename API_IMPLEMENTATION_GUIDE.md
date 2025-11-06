@@ -95,13 +95,16 @@ Verify a signed payment transaction before broadcasting it to the blockchain.
 ```
 
 #### Payment Schemes
-- `evm-native`: Native ETH payments
-- `evm-erc20`: ERC20 token payments (requires `tokenAddress`)
+- `evm-native`: Native ETH payments (user pays gas)
+- `evm-erc20`: ERC20 token payments (user pays gas, requires `tokenAddress`)
+- `evm-erc20-gasless`: FLUID token payments with EIP-3009 (facilitator pays gas)
 
 #### FLUID Token Address (Fluent Testnet)
 ```
 0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0
 ```
+
+**Note**: The `evm-erc20-gasless` scheme uses EIP-3009 meta-transactions and only works with the FLUID token. The facilitator pays gas fees, making transfers gasless for the user.
 
 ---
 
@@ -180,6 +183,280 @@ Retrieve payment processing statistics and recent transactions.
 
 ---
 
+## EIP-3009 Gasless Transfers
+
+### Overview
+
+The `evm-erc20-gasless` payment scheme uses **EIP-3009** to enable gasless FLUID token transfers. With EIP-3009:
+
+- **User signs an authorization** (not a transaction) using EIP-712 typed data
+- **No ETH required** for gas - the facilitator pays all gas fees
+- **Direct transfer** from user to recipient
+- **Replay protection** via nonces stored on-chain
+
+This is particularly useful for onboarding new users who don't have ETH for gas fees.
+
+### EIP-3009 Request Format
+
+For gasless transfers, the `paymentPayload` must be a **JSON string** (not RLP-encoded transaction) containing:
+
+```json
+{
+  "from": "0x...",
+  "to": "0x...",
+  "value": "1000000000000000000",
+  "validAfter": 0,
+  "validBefore": 1735689600,
+  "nonce": "0x1234...",
+  "v": 28,
+  "r": "0x...",
+  "s": "0x..."
+}
+```
+
+### Creating EIP-3009 Authorizations
+
+Here's how to create and sign an EIP-3009 authorization using ethers.js v6:
+
+```typescript
+import { ethers } from 'ethers';
+
+// FLUID token contract address on Fluent testnet
+const FLUID_ADDRESS = '0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0';
+const FLUENT_CHAIN_ID = 20994;
+
+// EIP-712 domain for FLUID token
+const domain = {
+  name: 'Fluent USD',
+  version: '1',
+  chainId: FLUENT_CHAIN_ID,
+  verifyingContract: FLUID_ADDRESS,
+};
+
+// EIP-712 types for transferWithAuthorization
+const types = {
+  TransferWithAuthorization: [
+    { name: 'from', type: 'address' },
+    { name: 'to', type: 'address' },
+    { name: 'value', type: 'uint256' },
+    { name: 'validAfter', type: 'uint256' },
+    { name: 'validBefore', type: 'uint256' },
+    { name: 'nonce', type: 'bytes32' },
+  ],
+};
+
+async function createGaslessAuthorization(
+  signer: ethers.Signer,
+  to: string,
+  amount: string  // in wei
+) {
+  const from = await signer.getAddress();
+  
+  // Generate a unique nonce (32 bytes)
+  const nonce = ethers.hexlify(ethers.randomBytes(32));
+  
+  // Set validity window (optional - use 0 and max for no restrictions)
+  const validAfter = 0;
+  const validBefore = Math.floor(Date.now() / 1000) + 3600; // Valid for 1 hour
+  
+  // Authorization message
+  const message = {
+    from,
+    to,
+    value: amount,  // Already in wei
+    validAfter,
+    validBefore,
+    nonce,
+  };
+  
+  // Sign with EIP-712
+  const signature = await signer.signTypedData(domain, types, message);
+  
+  // Split signature into v, r, s
+  const sig = ethers.Signature.from(signature);
+  
+  // Create authorization object
+  const authorization = {
+    from,
+    to,
+    value: amount,
+    validAfter,
+    validBefore,
+    nonce,
+    v: sig.v,
+    r: sig.r,
+    s: sig.s,
+  };
+  
+  return JSON.stringify(authorization);
+}
+```
+
+### Using Gasless Transfers with the API
+
+```typescript
+async function verifyAndSettleGaslessPayment(
+  signer: ethers.Signer,
+  to: string,
+  amount: string  // in wei, e.g., "1000000000000000000" for 1 FLUID
+) {
+  // Step 1: Create EIP-3009 authorization
+  const authorizationJson = await createGaslessAuthorization(signer, to, amount);
+  
+  // Step 2: Verify the authorization
+  const verifyResponse = await fetch('https://fluentx402.replit.app/api/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      paymentPayload: authorizationJson,  // JSON, not hex!
+      paymentDetails: {
+        networkId: "20994",
+        amount: amount,  // Same amount in wei
+        to: to,
+        from: await signer.getAddress(),
+        scheme: "evm-erc20-gasless",
+        tokenAddress: FLUID_ADDRESS,
+      }
+    })
+  });
+  
+  const verifyResult = await verifyResponse.json();
+  
+  if (!verifyResult.valid) {
+    throw new Error(`Verification failed: ${verifyResult.message}`);
+  }
+  
+  console.log('✓ Authorization verified');
+  
+  // Step 3: Settle (facilitator pays gas)
+  const settleResponse = await fetch('https://fluentx402.replit.app/api/settle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      paymentPayload: authorizationJson,
+      paymentDetails: {
+        networkId: "20994",
+        amount: amount,
+        to: to,
+        from: await signer.getAddress(),
+        scheme: "evm-erc20-gasless",
+        tokenAddress: FLUID_ADDRESS,
+      },
+      transactionId: verifyResult.transactionId,
+    })
+  });
+  
+  const settleResult = await settleResponse.json();
+  
+  if (!settleResult.success) {
+    throw new Error(`Settlement failed: ${settleResult.message}`);
+  }
+  
+  console.log('✓ Gasless transfer settled!');
+  console.log('  Transaction hash:', settleResult.txHash);
+  console.log('  Block number:', settleResult.blockNumber);
+  
+  return settleResult;
+}
+```
+
+### Privy Integration Example
+
+Here's a complete example using Privy embedded wallets for gasless FLUID transfers:
+
+```typescript
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { ethers } from 'ethers';
+
+function GaslessPaymentComponent() {
+  const { wallets } = useWallets();
+  
+  async function sendGaslessFluid(recipient: string, amountInFluid: string) {
+    // Get Privy embedded wallet
+    const embeddedWallet = wallets.find(w => w.walletClientType === 'privy');
+    if (!embeddedWallet) throw new Error('No embedded wallet found');
+    
+    // Get ethers provider and signer
+    const provider = await embeddedWallet.getEthersProvider();
+    const signer = provider.getSigner();
+    
+    // Convert amount to wei (FLUID has 18 decimals like ETH)
+    const amountWei = ethers.parseEther(amountInFluid).toString();
+    
+    // Create gasless authorization
+    const authJson = await createGaslessAuthorization(
+      signer,
+      recipient,
+      amountWei
+    );
+    
+    // Verify and settle
+    const result = await verifyAndSettleGaslessPayment(
+      signer,
+      recipient,
+      amountWei
+    );
+    
+    return result;
+  }
+  
+  return (
+    <button onClick={() => sendGaslessFluid('0x...', '10.0')}>
+      Send 10 FLUID (Gasless)
+    </button>
+  );
+}
+```
+
+### Key Differences: Regular vs Gasless
+
+| Feature | Regular (`evm-erc20`) | Gasless (`evm-erc20-gasless`) |
+|---------|----------------------|------------------------------|
+| **Payload Format** | RLP-encoded transaction (hex) | JSON authorization |
+| **Gas Payment** | User pays in ETH | Facilitator pays in ETH |
+| **Signature Type** | Transaction signature | EIP-712 typed signature |
+| **Requirements** | User needs ETH + tokens | User only needs tokens |
+| **Supported Tokens** | Any ERC-20 | FLUID only |
+| **Nonce Management** | Account nonce | Authorization nonce |
+
+### Validation Rules
+
+The API validates gasless authorizations by:
+
+1. **Chain ID Check**: Must be Fluent testnet (20994)
+2. **Token Check**: Must be FLUID token address
+3. **Signature Recovery**: Verifies EIP-712 signature matches `from` address
+4. **Nonce Check**: Ensures nonce hasn't been used via `authorizationState()`
+5. **Time Window**: Checks `validAfter` and `validBefore` timestamps
+6. **Balance Check**: Verifies sender has sufficient FLUID tokens
+
+### Error Handling
+
+Common errors for gasless transfers:
+
+```json
+{
+  "valid": false,
+  "message": "Authorization nonce has already been used"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Authorization has expired"
+}
+```
+
+```json
+{
+  "valid": false,
+  "message": "Insufficient token balance"
+}
+```
+
+---
+
 ## Implementation Examples
 
 ### JavaScript/TypeScript (Frontend)
@@ -194,7 +471,7 @@ interface PaymentDetails {
   amount: string;
   to: string;
   from?: string;
-  scheme: 'evm-native' | 'evm-erc20';
+  scheme: 'evm-native' | 'evm-erc20' | 'evm-erc20-gasless';
   tokenAddress?: string;
 }
 

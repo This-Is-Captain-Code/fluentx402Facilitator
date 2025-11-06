@@ -123,6 +123,15 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
   - Updated error messages to show raw wei values for clarity
   - Resolves "Token amount mismatch" errors when integrating with Privy wallets
   - API now correctly accepts amounts in wei (smallest unit) for both ETH and ERC20 tokens
+- 2025-11-06: **Added EIP-3009 gasless transfer support**
+  - Implemented `evm-erc20-gasless` payment scheme for FLUID token
+  - Added EIP-3009 function signatures to ERC20_ABI (transferWithAuthorization, receiveWithAuthorization, authorizationState)
+  - Created `verifyEIP3009Authorization()` method to validate EIP-712 signatures and check nonce replay protection
+  - Created `settleEIP3009Authorization()` method to execute gasless transfers where facilitator pays gas
+  - Updated verification flow to handle JSON authorization payloads (vs RLP for regular transactions)
+  - Facilitator wallet pays gas fees for user's FLUID token transfers (truly gasless for users)
+  - Added comprehensive EIP-3009 documentation with Privy wallet integration examples
+  - Enables onboarding users who have FLUID tokens but no ETH for gas
 
 ## User Preferences
 
