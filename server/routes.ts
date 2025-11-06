@@ -124,8 +124,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Attempt settlement by broadcasting the pre-signed transaction
-      const settlementResult = await blockchainService.settlePayment(paymentPayload);
+      // Attempt settlement by broadcasting the pre-signed transaction or executing gasless transfer
+      const settlementResult = await blockchainService.settlePayment(paymentPayload, paymentDetails.scheme);
 
       if (!settlementResult.success) {
         // Update transaction with error

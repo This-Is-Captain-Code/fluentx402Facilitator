@@ -33,19 +33,20 @@ export type Transaction = typeof transactions.$inferSelect;
 export const PaymentScheme = {
   EVM_NATIVE: "evm-native",
   EVM_ERC20: "evm-erc20",
+  EVM_ERC20_GASLESS: "evm-erc20-gasless", // EIP-3009 gasless transfers (facilitator pays gas)
 } as const;
 
 // Fluent testnet FLUID token contract address (Fluent USD - EIP 3009 compliant)
 export const FLUID_ADDRESS = "0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0";
 
 export const verifyRequestSchema = z.object({
-  paymentPayload: z.string(), // Serialized signed transaction (RLP-encoded)
+  paymentPayload: z.string(), // For evm-native/evm-erc20: RLP-encoded signed transaction. For evm-erc20-gasless: JSON with EIP-3009 authorization
   paymentDetails: z.object({
     networkId: z.string(),
     amount: z.string(),
     to: z.string(), // Recipient address
     from: z.string().optional(), // Sender address (recovered from signature if not provided)
-    scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20]),
+    scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20, PaymentScheme.EVM_ERC20_GASLESS]),
     tokenAddress: z.string().optional(),
   }),
 });
@@ -61,13 +62,13 @@ export const verifyResponseSchema = z.object({
 export type VerifyResponse = z.infer<typeof verifyResponseSchema>;
 
 export const settleRequestSchema = z.object({
-  paymentPayload: z.string(), // Serialized signed transaction (RLP-encoded)
+  paymentPayload: z.string(), // For evm-native/evm-erc20: RLP-encoded signed transaction. For evm-erc20-gasless: JSON with EIP-3009 authorization
   paymentDetails: z.object({
     networkId: z.string(),
     amount: z.string(),
     to: z.string(), // Recipient address
     from: z.string().optional(), // Sender address (recovered from signature if not provided)
-    scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20]),
+    scheme: z.enum([PaymentScheme.EVM_NATIVE, PaymentScheme.EVM_ERC20, PaymentScheme.EVM_ERC20_GASLESS]),
     tokenAddress: z.string().optional(),
   }),
   transactionId: z.string().optional(),
