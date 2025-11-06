@@ -110,6 +110,13 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
   - Added dedicated code examples for both FLUID (evm-erc20) and ETH (evm-native) payment verification
   - Enhanced footer to include FLUID stablecoin information
   - Showcased EIP-3009 gasless transfer capabilities and meta-transaction support
+- 2025-11-06: **Added CORS support for direct frontend API calls**
+  - Installed and configured `cors` middleware in Express server
+  - Enabled cross-origin requests from any origin with `credentials: false`
+  - Updated API documentation with comprehensive CORS configuration section
+  - Added Privy wallet integration example showing direct API calls from frontend
+  - API now supports direct calls from web applications without requiring a backend proxy
+  - Enables seamless integration with wallet providers (Privy, MetaMask, WalletConnect, etc.)
 
 ## User Preferences
 
