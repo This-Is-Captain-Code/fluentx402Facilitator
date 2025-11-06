@@ -1,5 +1,7 @@
-import { type Transaction, type InsertTransaction } from "@shared/schema";
+import { type Transaction, type InsertTransaction, transactions } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, desc, sql } from "drizzle-orm";
 
 // Storage interface for x402 facilitator
 
@@ -34,6 +36,10 @@ export class MemStorage implements IStorage {
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
     const id = randomUUID();
     const transaction: Transaction = {
+      txHash: null,
+      verifiedAt: null,
+      settledAt: null,
+      error: null,
       ...insertTransaction,
       id,
       createdAt: new Date(),
@@ -71,4 +77,61 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DbStorage implements IStorage {
+  async getTransaction(id: string): Promise<Transaction | undefined> {
+    const result = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getAllTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions);
+  }
+
+  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    const id = randomUUID();
+    const transaction: Transaction = {
+      txHash: null,
+      verifiedAt: null,
+      settledAt: null,
+      error: null,
+      ...insertTransaction,
+      id,
+      createdAt: new Date(),
+    };
+    await db.insert(transactions).values(transaction);
+    return transaction;
+  }
+
+  async updateTransaction(id: string, updates: Partial<Transaction>): Promise<Transaction | undefined> {
+    const result = await db
+      .update(transactions)
+      .set(updates)
+      .where(eq(transactions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getTransactionsByStatus(status: string): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.status, status));
+  }
+
+  async getTotalVolume(): Promise<string> {
+    const result = await db
+      .select({ total: sql<string>`COALESCE(SUM(CAST(${transactions.amount} AS NUMERIC)), 0)` })
+      .from(transactions)
+      .where(eq(transactions.status, 'settled'));
+    
+    const total = parseFloat(result[0]?.total || '0');
+    return total.toFixed(4);
+  }
+
+  async getRecentTransactions(limit: number = 10): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit);
+  }
+}
+
+export const storage = new DbStorage();
