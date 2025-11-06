@@ -117,6 +117,12 @@ An x402 payment facilitator service built for Fluent testnet (Chain ID: 20994). 
   - Added Privy wallet integration example showing direct API calls from frontend
   - API now supports direct calls from web applications without requiring a backend proxy
   - Enables seamless integration with wallet providers (Privy, MetaMask, WalletConnect, etc.)
+- 2025-11-06: **Fixed ERC20 amount parsing bug**
+  - Fixed bug where API incorrectly parsed `paymentDetails.amount` using `parseUnits`
+  - Changed to use `BigInt()` directly since amounts should already be in wei
+  - Updated error messages to show raw wei values for clarity
+  - Resolves "Token amount mismatch" errors when integrating with Privy wallets
+  - API now correctly accepts amounts in wei (smallest unit) for both ETH and ERC20 tokens
 
 ## User Preferences
 
