@@ -637,7 +637,120 @@ The API will return detailed validation errors:
 2. **Rate Limiting**: Implement rate limiting on your reverse proxy
 3. **Input Validation**: The API validates all inputs, but add client-side validation too
 4. **Private Keys**: Never send private keys to the API (only send signed transactions)
-5. **CORS**: Configure CORS properly for your domain
+5. **CORS**: The API has CORS enabled to allow direct calls from web applications (see CORS Configuration below)
+
+---
+
+## CORS Configuration
+
+This API has **Cross-Origin Resource Sharing (CORS)** enabled, which means you can call it directly from your web application without needing a backend proxy.
+
+### Current Configuration
+
+The API accepts requests from **any origin** with the following settings:
+
+- **Allowed Origins**: `*` (all domains)
+- **Allowed Methods**: `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`
+- **Allowed Headers**: `Content-Type`, `Authorization`
+- **Credentials**: Disabled (not needed - API is stateless and doesn't use cookies)
+
+### Direct Frontend Integration
+
+This means you can call the API directly from your frontend JavaScript code, including:
+
+- **React/Next.js** applications
+- **Vue/Nuxt** applications
+- **Vanilla JavaScript** web apps
+- **Mobile apps** (React Native, etc.)
+
+### Example: Direct API Call from Browser
+
+```typescript
+// This works directly from your frontend - no proxy needed!
+const response = await fetch('https://fluentx402.replit.app/api/verify', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    paymentPayload: signedTransaction,
+    paymentDetails: {
+      networkId: "20994",
+      amount: ethers.parseEther("1.0").toString(),
+      to: recipientAddress,
+      scheme: "evm-native"
+    }
+  })
+});
+
+const result = await response.json();
+```
+
+### Integration with Wallet Providers
+
+The CORS configuration enables seamless integration with wallet providers like:
+
+- **Privy Embedded Wallets**
+- **MetaMask**
+- **WalletConnect**
+- **Coinbase Wallet**
+- **Rainbow Wallet**
+
+### Privy Wallet Example
+
+If you're using Privy embedded wallets, you can sign transactions and call this API directly:
+
+```typescript
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { ethers } from 'ethers';
+
+function PaymentComponent() {
+  const { wallets } = useWallets();
+  
+  async function makePayment(amount: string, recipient: string) {
+    // Get Privy embedded wallet
+    const embeddedWallet = wallets.find(w => w.walletClientType === 'privy');
+    const provider = await embeddedWallet.getEthersProvider();
+    const signer = provider.getSigner();
+    
+    // Sign transaction
+    const signedTx = await signer.signTransaction({
+      to: recipient,
+      value: ethers.parseEther(amount),
+      chainId: 20994, // Fluent testnet
+    });
+    
+    // Call x402 API directly - CORS is enabled!
+    const response = await fetch('https://fluentx402.replit.app/api/settle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentPayload: signedTx,
+        paymentDetails: {
+          networkId: "20994",
+          amount: ethers.parseEther(amount).toString(),
+          to: recipient,
+          scheme: "evm-native"
+        }
+      })
+    });
+    
+    const result = await response.json();
+    console.log('Payment settled:', result.txHash);
+  }
+}
+```
+
+### Production Considerations
+
+For production deployments, you may want to:
+
+1. **Restrict Origins**: Modify the CORS configuration to only allow specific domains
+2. **Add API Keys**: Implement API key authentication for additional security
+3. **Rate Limiting**: Add rate limiting to prevent abuse
+4. **Monitoring**: Track API usage and set up alerts
+
+The current permissive CORS configuration (`origin: '*'`) is suitable for development and testing but should be reviewed before production use.
 
 ---
 

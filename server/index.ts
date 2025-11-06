@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -9,6 +10,13 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+app.use(cors({
+  origin: '*', // Allow all origins - public API
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false // No credentials needed - API is stateless and doesn't use cookies
+}));
+
 app.use(express.json({
   verify: (req, _res, buf) => {
     req.rawBody = buf;
