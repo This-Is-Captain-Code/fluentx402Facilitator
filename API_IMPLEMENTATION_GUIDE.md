@@ -45,9 +45,9 @@ Get the blockchain network configuration and facilitator details.
 {
   "chainId": 20994,
   "name": "Fluent Testnet",
-  "rpcUrl": "https://rpc.dev.thefluent.xyz/",
+  "rpcUrl": "https://rpc.testnet.fluent.xyz/",
   "symbol": "ETH",
-  "explorer": "https://blockscout.dev.thefluent.xyz",
+  "explorer": "https://testnet.fluentscan.xyz/",
   "facilitatorAddress": "0x...",
   "walletConfigured": true,
   "settlementAvailable": true
@@ -157,6 +157,8 @@ Broadcast a verified signed transaction to the blockchain and settle the payment
 **GET** `/api/stats`
 
 Retrieve payment processing statistics and recent transactions.
+
+**Note:** All transaction data is stored in a PostgreSQL database and persists across server restarts. The dashboard reflects the complete transaction history.
 
 #### Response Example
 ```json

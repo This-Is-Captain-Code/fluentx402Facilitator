@@ -251,7 +251,7 @@ export default function Home() {
     paymentPayload: signedTransaction,
     paymentDetails: {
       networkId: '20994',
-      amount: '10.00',  // 10 FLUID tokens
+      amount: '10000000000000000000',  // 10 FLUID tokens in wei
       to: recipientAddress,
       scheme: 'evm-erc20',  // FLUID token payment
       token: '0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0'
@@ -282,7 +282,7 @@ if (result.valid) {
     paymentPayload: signedTransaction,
     paymentDetails: {
       networkId: '20994',
-      amount: '0.01',  // 0.01 ETH
+      amount: '10000000000000000',  // 0.01 ETH in wei
       to: recipientAddress,
       scheme: 'evm-native'
     }

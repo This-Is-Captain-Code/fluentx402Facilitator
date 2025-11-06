@@ -159,7 +159,7 @@ const tx = await wallet.signTransaction({
   "paymentPayload": "0x...",
   "paymentDetails": {
     "networkId": "20994",
-    "amount": "0.01",
+    "amount": "10000000000000000",
     "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     "scheme": "evm-native"
   }
@@ -236,7 +236,7 @@ const tx = await wallet.signTransaction({
   "paymentPayload": "0x...",
   "paymentDetails": {
     "networkId": "20994",
-    "amount": "0.01",
+    "amount": "10000000000000000",
     "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     "scheme": "evm-native"
   },
@@ -324,7 +324,7 @@ const tx = await wallet.signTransaction({
   "paymentPayload": "0x...",
   "paymentDetails": {
     "networkId": "20994",
-    "amount": "10.0",
+    "amount": "10000000000000000000",
     "to": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     "scheme": "evm-erc20",
     "tokenAddress": "0xd8acBC0d60acCCeeF70D9b84ac47153b3895D3d0"
@@ -582,7 +582,7 @@ const authorization = JSON.stringify({
               </div>
               <CardTitle>Get Statistics</CardTitle>
               <CardDescription>
-                Retrieve aggregated statistics about payment processing activity
+                Retrieve aggregated statistics about payment processing activity. All transaction data is stored in PostgreSQL and persists across server restarts.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
